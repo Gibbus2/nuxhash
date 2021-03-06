@@ -79,6 +79,31 @@ def read_settings_from_file(fd):
             raise ValueError
     return read_options(methods)
 
+def read_settings_from_docker():
+    return {
+        'nicehash': {
+            'wallet': os.environ['WALLET'],
+            'workername': os.environ['WORKERNAME'],
+            'region': os.environ['REGION'],
+            'api_organization': os.environ['API_ORGANIZATION'],
+            'api_key': os.environ['API_KEY'],
+            'api_secret': os.environ['API_SECRET']
+            },
+        'switching': {
+            'interval': 60,
+            'threshold': 0.1
+            },
+        'gui': {
+            'units': 'mBTC'
+            },
+        'donate': {
+            'optout': os.environ['OPTOUT']
+            },
+        'excavator_miner': {
+            'listen': '',
+            'args': ''
+            }
+        }
 
 def write_settings_to_file(fd, settings):
     parser = configparser.ConfigParser()
@@ -121,15 +146,17 @@ def write_benchmarks_to_file(fd, benchmarks):
 
 
 def load_settings(config_dir):
-    try:
-        with open(config_dir/SETTINGS_FILENAME, 'r') as settings_fd:
-            settings = read_settings_from_file(settings_fd)
-    except IOError as err:
-        if err.errno != errno.ENOENT:
-            raise
-        return DEFAULT_SETTINGS
+    if is_docker():
+        settings = read_settings_from_docker()
     else:
-        return settings
+        try:
+            with open(config_dir/SETTINGS_FILENAME, 'r') as settings_fd:
+                settings = read_settings_from_file(settings_fd)
+        except IOError as err:
+            if err.errno != errno.ENOENT:
+                raise
+            return DEFAULT_SETTINGS
+    return settings
 
 
 def load_benchmarks(config_dir, devices):
@@ -163,3 +190,9 @@ def _mkdir(d):
         if not os.path.isdir(d):
             raise
 
+def is_docker():
+    path = '/proc/self/cgroup'
+    return (
+        os.path.exists('/.dockerenv') or
+        os.path.isfile(path) and any('docker' in line for line in open(path))
+    )
