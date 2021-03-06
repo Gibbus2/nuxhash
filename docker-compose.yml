@@ -1,0 +1,12 @@
+version: '3'
+services:
+  nuxhash:
+    container_name: nuxhash
+    image: gibbus/nuxhash-docker:latest
+    environment:
+      - WALLET='mining address'
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]
